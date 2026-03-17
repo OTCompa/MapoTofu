@@ -5,6 +5,9 @@ using System.IO;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using MapoTofu.Windows;
+using MapoTofu.Structs;
+using System.Text;
+using System;
 
 namespace MapoTofu;
 
@@ -18,11 +21,11 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
-    private const string CommandName = "/pmycommand";
+    private const string CommandName = "/mptf";
 
     public Configuration Configuration { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("SamplePlugin");
+    public readonly WindowSystem WindowSystem = new("Mapo Tofu");
     private ConfigWindow ConfigWindow { get; init; }
 
     public Plugin()
@@ -35,7 +38,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "A useful message to display in /xlhelp"
+            HelpMessage = "Configure strategy boards to open automatically"
         });
 
         // Tell the UI system that we want our windows to be drawn through the window system
@@ -60,10 +63,49 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.RemoveHandler(CommandName);
     }
 
-    private void OnCommand(string command, string args)
+    private unsafe void OnCommand(string command, string args)
     {
-
+        var tofu = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
+        Log.Debug($"{(nint)tofu:X02}");
+        if (tofu == null) return;
+        var tofuChild = tofu->TofuModuleChild;
+        Log.Debug($"{(nint)tofuChild:X02}");
+        if (tofuChild == null) return;
+        var sb = new StringBuilder();
+        sb.AppendLine("\n-----SavedBoards-----");
+        foreach (var board in tofuChild->SavedBoards)
+        {
+            if (board.IsValid)
+            {
+                sb.AppendLine($"{Encoding.UTF8.GetString(board.Title)}");
+            }
+        }
+        sb.AppendLine("-----SavedFolders-----");
+        foreach (var board in tofuChild->SavedFolders)
+        {
+            if (board.IsValid && !board.IsSingleItem)
+            {
+                sb.AppendLine($"{Encoding.UTF8.GetString(board.Title)}");
+            }
+        }
+        sb.AppendLine("-----SharedBoards-----");
+        foreach (var board in tofuChild->SharedBoards)
+        {
+            if (board.IsValid)
+            {
+                sb.AppendLine($"{Encoding.UTF8.GetString(board.Title)}");
+            }
+        }
+        sb.AppendLine("-----SharedFolders-----");
+        foreach (var board in tofuChild->SharedFolders)
+        {
+            if (board.IsValid && !board.IsSingleItem)
+            {
+                sb.AppendLine($"{Encoding.UTF8.GetString(board.Title)}");
+            }
+        }
+        Log.Debug(sb.ToString());
     }
-    
+
     public void ToggleConfigUi() => ConfigWindow.Toggle();
 }
