@@ -30,7 +30,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (savedBoardOrder == nint.Zero) return [];
-            return new ReadOnlySpan<byte>((byte*)savedBoardOrder, 50);
+            return new ReadOnlySpan<byte>((byte*)savedBoardOrder, Constants.SavedBoardsLimit);
         }
     }
 
@@ -39,7 +39,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (savedBoards == nint.Zero) return [];
-            return new ReadOnlySpan<StrategyBoardEntry>((byte*)savedBoards, 50);
+            return new ReadOnlySpan<StrategyBoardEntry>((byte*)savedBoards, Constants.SavedBoardsLimit);
         }
     }
 
@@ -48,7 +48,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (savedFolderOrder == nint.Zero) return [];
-            return new ReadOnlySpan<byte>((byte*)savedFolderOrder, 55);
+            return new ReadOnlySpan<byte>((byte*)savedFolderOrder, Constants.SavedFoldersLimit);
         }
     }
 
@@ -57,7 +57,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (savedFolders == nint.Zero) return [];
-            return new ReadOnlySpan<StrategyBoardFolder>((byte*)savedFolders, 55);
+            return new ReadOnlySpan<StrategyBoardFolder>((byte*)savedFolders, Constants.SavedFoldersLimit);
         }
     }
 
@@ -66,7 +66,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (sharedBoardOrder == nint.Zero) return [];
-            return new ReadOnlySpan<byte>((byte*)sharedBoardOrder, 20);
+            return new ReadOnlySpan<byte>((byte*)sharedBoardOrder, Constants.SharedBoardsLimit);
         }
     }
 
@@ -75,7 +75,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (sharedBoards == nint.Zero) return [];
-            return new ReadOnlySpan<StrategyBoardEntry>((byte*)sharedBoards, 20);
+            return new ReadOnlySpan<StrategyBoardEntry>((byte*)sharedBoards, Constants.SharedBoardsLimit);
         }
     }
 
@@ -84,7 +84,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (sharedFolderOrder == nint.Zero) return [];
-            return new ReadOnlySpan<byte>((byte*)sharedFolderOrder, 20);
+            return new ReadOnlySpan<byte>((byte*)sharedFolderOrder, Constants.SharedFoldersLimit);
         }
     }
 
@@ -93,7 +93,7 @@ public unsafe struct TofuModuleChild
         get
         {
             if (sharedFolders == nint.Zero) return [];
-            return new ReadOnlySpan<StrategyBoardFolder>((byte*)sharedFolders, 20);
+            return new ReadOnlySpan<StrategyBoardFolder>((byte*)sharedFolders, Constants.SharedFoldersLimit);
         }
     }
 }

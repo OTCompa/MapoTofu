@@ -5,7 +5,7 @@ using System.Text;
 
 namespace MapoTofu.Structs;
 
-[StructLayout(LayoutKind.Explicit, Size = 0x38)]
+[StructLayout(LayoutKind.Explicit, Size = Constants.StrategyBoardObjectSize)]
 public unsafe struct StrategyBoardObject
 {
     [FieldOffset(0x0)] private fixed byte label[30];

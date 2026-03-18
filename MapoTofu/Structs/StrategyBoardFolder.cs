@@ -4,7 +4,7 @@ using System.Text;
 
 namespace MapoTofu.Structs;
 
-[StructLayout(LayoutKind.Explicit, Size = 0x47)]
+[StructLayout(LayoutKind.Explicit, Size = Constants.StrategyBoardFolderSize)]
 public unsafe struct StrategyBoardFolder
 {
     [FieldOffset(0x0)] [MarshalAs(UnmanagedType.I1)] public bool IsValid;
