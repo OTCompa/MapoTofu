@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace MapoTofu.Structs;
 
@@ -25,7 +26,7 @@ public unsafe struct StrategyBoardEntry
         }
     }
 
-    public readonly ReadOnlySpan<byte> Title
+    public string Title
     {
         get
         {
@@ -36,8 +37,9 @@ public unsafe struct StrategyBoardEntry
                 {
                     len++;
                 }
-                if (len == 0) return [];
-                return new ReadOnlySpan<byte>(ptr, len);
+                if (len == 0) return string.Empty;
+                var temp = new ReadOnlySpan<byte>(ptr, len);
+                return Encoding.UTF8.GetString(temp);
             }
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace MapoTofu.Structs;
 
@@ -12,7 +13,7 @@ public unsafe struct StrategyBoardFolder
     [FieldOffset(0x3)] private fixed byte title[20];
     [FieldOffset(0x43)] [MarshalAs(UnmanagedType.I1)] public bool IsSingleItem;
 
-    public readonly ReadOnlySpan<byte> Title
+    public string Title
     {
         get
         {
@@ -23,8 +24,9 @@ public unsafe struct StrategyBoardFolder
                 {
                     len++;
                 }
-                if (len == 0) return [];
-                return new ReadOnlySpan<byte>(ptr, len);
+                if (len == 0) return string.Empty;
+                var temp = new ReadOnlySpan<byte>(ptr, len);
+                return Encoding.UTF8.GetString(temp);
             }
         }
     }

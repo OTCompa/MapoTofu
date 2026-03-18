@@ -1,6 +1,7 @@
 // taken from Wintermute, https://discord.com/channels/581875019861328007/653504487352303619/1458959023532544299 in the XIVlauncher discord
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace MapoTofu.Structs;
 
@@ -19,7 +20,7 @@ public unsafe struct StrategyBoardObject
     [FieldOffset(0x32)] public ushort ArgsC;
     [FieldOffset(0x34)] public byte Scale;
 
-    public readonly ReadOnlySpan<byte> Label
+    public string Label
     {
         get
         {
@@ -30,8 +31,9 @@ public unsafe struct StrategyBoardObject
                 {
                     len++;
                 }
-                if (len == 0) return [];
-                return new ReadOnlySpan<byte>(ptr, len);
+                if (len == 0) return string.Empty;
+                var temp = new ReadOnlySpan<byte>(ptr, len);
+                return Encoding.UTF8.GetString(temp);
             }
         }
     }
