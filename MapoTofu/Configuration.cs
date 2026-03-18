@@ -8,14 +8,8 @@ namespace MapoTofu;
 public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
-    public class SlideConfigEntry(bool Enabled, string Title, int Index, bool IsFolder) {
-        public bool Enabled = Enabled;
-        public string Title = Title;
-        public int Index = Index;
-        public bool IsFolder = IsFolder;
-    };
 
-    public Dictionary<ushort, SlideConfigEntry> TerritoryInitialStrategy = [];
+    public Dictionary<ushort, Common.StrategyConfigEntry> TerritoryInitialStrategy = [];
 
     public void Save()
     {

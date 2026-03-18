@@ -3,14 +3,12 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using MapoTofu.Windows;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using AgentId = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId;
 using TofuModule = MapoTofu.Structs.TofuModule;
 
 namespace MapoTofu;
@@ -31,9 +29,11 @@ public sealed class Plugin : IDalamudPlugin
 
     public readonly WindowSystem WindowSystem = new("Mapo Tofu");
     private ConfigWindow ConfigWindow { get; init; }
+
     private readonly Queue<Func<bool>> actionQueue = new();
     private uint delay = 0;
-    private Stopwatch sw = new();
+    private int retries = 0;
+    private readonly Stopwatch sw = new();
 
 #if DEBUG
     private const string DebugName = "/mptfd";
@@ -100,20 +100,12 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private unsafe void Test()
-    {
-        var agent = GameGui.GetAgentById((int)AgentId.TofuPreview);
-        if (agent == null) return;
-        var agentPtr = (AgentInterface*)agent.Address;
-        agentPtr->VirtualTable->Hide(agentPtr);
-    }
-
-    private unsafe bool OpenTofuPreviewOnTerritoryChange(Configuration.SlideConfigEntry entry)
+    private unsafe bool OpenTofuPreviewOnTerritoryChange(Common.StrategyConfigEntry entry)
     {
         Utility.HideTofu();
         Utility.ShowTofu();
 
-        var idx = FindBoardPosition(entry);
+        var idx = FindBoardPosition(entry.Strategy);
         if (idx < -1 || idx > 49)
         {
             Log.Error($"An error occurred in calculating the strategy position.\nCalculated position: {idx}");
@@ -125,31 +117,36 @@ public sealed class Plugin : IDalamudPlugin
         return true;
     }
 
-    private unsafe int FindBoardPosition(Configuration.SlideConfigEntry entry)
+    // maps strategy board the index to TofuList entry # to view the corresponding board
+    private unsafe int FindBoardPosition(Common.Strategy strategy)
     {
         var tofuModule = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
         if (tofuModule == null) return -1;
         var tofuChild = tofuModule->TofuModuleChild;
         if (tofuChild == null) return -1;
-        if (!entry.IsFolder)
+        if (!strategy.IsFolder)
         {
-            var board = tofuChild->SavedBoards[(int)entry.Index];
-            var parentFolder = tofuChild->SavedFolders[(int)board.Folder];
+            // if selected is a singular board, only need to get position in list
+            // and add number of the folders that came before it
+            var board = tofuChild->SavedBoards[strategy.Index];
+            var parentFolder = tofuChild->SavedFolders[board.Folder];
             return board.PositionInList + parentFolder.PositionInList;
         } else
         {
-            var folder = tofuChild->SavedFolders[(int)entry.Index];
+            // if selected is a folde,r just get the first board in the folder
+            // should be the same thing (hopefully)
+            var folder = tofuChild->SavedFolders[strategy.Index];
             //Log.Debug($"Folder {folder.Index}: {folder.Title}, {folder.PositionInList}");
             var lowestInFolder = 100;
             foreach(var board in tofuChild->SavedBoards)
             {
-                if (board.Folder != entry.Index) continue;
+                if (!board.IsValid) continue;
+                if (board.Folder != strategy.Index) continue;
                 if (board.PositionInList < lowestInFolder)
                 {
                     lowestInFolder = board.PositionInList;
                     //Log.Debug($"Lowest board {board.Index}: {board.Title}, {board.PositionInList}");
                 }
-
             }
             return lowestInFolder + folder.PositionInList;
         }
@@ -176,11 +173,18 @@ public sealed class Plugin : IDalamudPlugin
             {
                 if (next())
                 {
+                    retries = 0;
                     actionQueue.Dequeue();
                 } else
                 {
+                    retries++;
                     delay = oldDelay;
-                    Log.Debug("Failed");
+                    if (retries > 10)
+                    {
+                        retries = 0;
+                        actionQueue.Clear();
+                        Log.Error("Last action failed too many times. Aborting entire queue.");
+                    }
                 }
             }
         }

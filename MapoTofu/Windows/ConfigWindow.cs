@@ -2,39 +2,25 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Common.Lua;
 using Lumina.Excel.Sheets;
 using MapoTofu.Structs;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Channels;
-using static MapoTofu.Configuration;
 
 namespace MapoTofu.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
     private readonly Configuration configuration;
-    internal class Strategy(int Index, string Title, bool IsFolder)
-    {
-        public int Index = Index;
-        public string Title = Title;
-        public bool IsFolder = IsFolder;
-    }
 
-    private readonly List<Strategy> strategyData = [];
+    private readonly List<Common.Strategy> strategyData = [];
     private readonly Dictionary<ushort, string> territoryLUT = [];
 
-    private int selectedSlide = -1;
-    private string selectedSlideTitle = "";
     private int territoryInput = Plugin.ClientState.TerritoryType;
-    private bool selectedIsFolder = false;
+    private Common.Strategy? selectedStrategy = null;
+    private bool addNewEntryFailed = false;
 
     public ConfigWindow(Plugin plugin) : base("Mapo Tofu###MPTFConfig")
     {
@@ -113,14 +99,20 @@ public class ConfigWindow : Window, IDisposable
         {
             if (ImGui.Button($"{FontAwesomeIcon.Plus.ToIconString()}###MPTFAddNewEntry"))
             {
-                if (selectedSlide != -1 && territoryInput > -1)
+                if (territoryInput > -1 && selectedStrategy != null)
                 {
                     var key = (ushort)territoryInput;
-                    dict[key] = new(true, selectedSlideTitle.Replace("\t",""), selectedSlide, selectedIsFolder);
-                    territoryInput = Plugin.ClientState.TerritoryType;
-                    selectedSlide = -1;
-                    selectedSlideTitle = "";
-                    change = true;
+                    if (!dict.ContainsKey(key))
+                    {
+                        addNewEntryFailed = false;
+                        dict[key] = new(selectedStrategy);
+                        territoryInput = Plugin.ClientState.TerritoryType;
+                        selectedStrategy = null;
+                        change = true;
+                    } else
+                    {
+                        addNewEntryFailed = true;
+                    }
                 } 
             }
         }
@@ -129,34 +121,43 @@ public class ConfigWindow : Window, IDisposable
         ImGui.NextColumn();
         ImGui.Separator();
         ImGui.Columns(1);
+
+        if (addNewEntryFailed)
+        {
+            ImGui.Text("Failed to add new entry. An entry with the same territory already exists");
+        }
+
         ImGui.Text($"Current territory ID: {Plugin.ClientState.TerritoryType}");
+
+        if (ImGui.Button("Refresh strategy boards###MPTFRefresh"))
+        {
+            strategyData.Clear();
+            PopulateStrategyData();
+        }
+
         if (change)
         {
             configuration.Save();
         }
     }
 
-    private void ComboEntry(ushort key, ref Dictionary<ushort, SlideConfigEntry> dict, ref bool change)
+    private void ComboEntry(ushort key, ref Dictionary<ushort, Common.StrategyConfigEntry> dict, ref bool change)
     {
-        using (var combo = ImRaii.Combo($"###MPTFSlideSelection{key}", dict[key].Title))
+        using (var combo = ImRaii.Combo($"###MPTFSlideSelection{key}", dict[key].Strategy.Title.Trim()))
         {
-            if (combo.Success)
+            if (!combo.Success) return;
+            if (strategyData.Count == 0)
             {
-                if (strategyData.Count == 0)
+                PopulateStrategyData();
+            }
+            var idx = 0;
+            foreach (var strategy in strategyData)
+            {
+                idx++;
+                if (ImGui.Selectable($"{strategy.Title}###MPTFCombo{key}_{idx}"))
                 {
-                    PopulateStrategyData();
-                }
-                var idx = 0;
-                foreach (var strategy in strategyData)
-                {
-                    idx++;
-                    if (ImGui.Selectable($"{strategy.Title}###MPTFCombo{key}_{idx}"))
-                    {
-                        dict[key].Index = strategy.Index;
-                        dict[key].IsFolder = strategy.IsFolder;
-                        dict[key].Title = strategy.Title.Trim();
-                        change = true;
-                    }
+                    dict[key].Strategy = strategy;
+                    change = true;
                 }
             }
         }
@@ -164,24 +165,20 @@ public class ConfigWindow : Window, IDisposable
 
     private void ComboNewEntry()
     {
-        using (var combo = ImRaii.Combo($"###MPTFSlideSelectionNew", selectedSlideTitle))
+        using (var combo = ImRaii.Combo($"###MPTFSlideSelectionNew", selectedStrategy?.Title.Trim()))
         {
-            if (combo.Success)
+            if (!combo.Success) return;
+            if (strategyData.Count == 0)
             {
-                if (strategyData.Count == 0)
+                PopulateStrategyData();
+            }
+            var idx = 0;
+            foreach (var strategy in strategyData)
+            {
+                idx++;
+                if (ImGui.Selectable($"{strategy.Title}###MPTFNewCombo{idx}"))
                 {
-                    PopulateStrategyData();
-                }
-                var idx = 0;
-                foreach (var strategy in strategyData)
-                {
-                    idx++;
-                    if (ImGui.Selectable($"{strategy.Title}###MPTFNewCombo{idx}"))
-                    {
-                        selectedSlide = (int)strategy.Index;
-                        selectedSlideTitle = strategy.Title.Trim();
-                        selectedIsFolder = strategy.IsFolder;
-                    }
+                    selectedStrategy = strategy;
                 }
             }
         }
