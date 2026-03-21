@@ -97,10 +97,17 @@ internal static class Utility
         return true;
     }
 
-    public static unsafe bool PrevBoard() => CallbackHelper("TofuPreview", 0, 5);
-    public static unsafe bool NextBoard() => CallbackHelper("TofuPreview", 0, 6);
-    public static unsafe bool ReturnToList() => CallbackHelper("TofuPreview", 0, 1);
-    public static unsafe bool PeekBoard(uint boardNum) => CallbackHelper("TofuList", 3, boardNum);
-    public static unsafe bool ReviewBoard() => CallbackHelper("TofuList", 0, 9);
-    public static unsafe bool ExitPreview() => CallbackHelper("TofuPreview", -1);
+    public static unsafe bool ShouldWait()
+    {
+        var addon = (AtkUnitBase*)Plugin.GameGui.GetAddonByName("FadeMiddle").Address;
+        if (addon == null || addon->IsVisible) return true;
+        return false;
+    }
+
+    public static bool PrevBoard() => CallbackHelper("TofuPreview", 0, 5);
+    public static bool NextBoard() => CallbackHelper("TofuPreview", 0, 6);
+    public static bool ReturnToList() => CallbackHelper("TofuPreview", 0, 1);
+    public static bool PeekBoard(uint boardNum) => CallbackHelper("TofuList", 3, boardNum);
+    public static bool ReviewBoard() => CallbackHelper("TofuList", 0, 9);
+    public static bool ExitPreview() => CallbackHelper("TofuPreview", -1);
 }

@@ -9,7 +9,7 @@ public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
 
-    public Dictionary<ushort, Common.StrategyConfigEntry> TerritoryInitialStrategy = [];
+    public Dictionary<int, List<Common.TriggerEntry>> StrategyBoardTriggerOptions = [];
 
     public void Save()
     {

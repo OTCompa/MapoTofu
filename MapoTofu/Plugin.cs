@@ -1,14 +1,17 @@
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using MapoTofu.Windows;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using static MapoTofu.Common;
 using TofuModule = MapoTofu.Structs.TofuModule;
 
 namespace MapoTofu;
@@ -22,6 +25,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static ICondition Condition { get; private set; } = null!;
+    [PluginService] internal static IDutyState DutyState { get; private set; } = null!;
 
     private const string CommandName = "/mptf";
     
@@ -31,9 +36,16 @@ public sealed class Plugin : IDalamudPlugin
     private ConfigWindow ConfigWindow { get; init; }
 
     private readonly Queue<Func<bool>> actionQueue = new();
-    private uint delay = 0;
-    private int retries = 0;
+    private uint actionDelay = 0;
+    private int actionRetries = 0;
+
     private readonly Stopwatch sw = new();
+    private readonly Stopwatch encounterTimer = new();
+    private SortedDictionary<int, StrategyConfigEntry>? activeEntry = null;
+    private SortedDictionary<int, StrategyConfigEntry>.Enumerator currentEntry;
+    private ushort weather = 0;
+    private bool? combatState = null;
+    private bool skipInitial = false;
 
 #if DEBUG
     private const string DebugName = "/mptfd";
@@ -66,9 +78,33 @@ public sealed class Plugin : IDalamudPlugin
         // This adds a button to the plugin installer entry of this plugin which allows
         // toggling the display status of the configuration ui
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
-        Framework.Update += OnFrameworkUpdate;
-        ClientState.TerritoryChanged += OnTerritoryChanged;
 
+        Framework.Update += OnFrameworkUpdate;
+        Condition.ConditionChange += OnConditionChange;
+        ClientState.TerritoryChanged += OnTerritoryChanged;
+        DutyState.DutyStarted += DutyState_DutyStarted;
+        DutyState.DutyRecommenced += DutyState_DutyRecommenced;
+
+        // probably make this an option
+        if (DutyState.IsDutyStarted)
+        {
+            SearchAndRunInitState(ClientState.TerritoryType);
+        }
+#if DEBUG
+        ConfigWindow.Toggle();
+#endif
+    }
+
+    private void OnTerritoryChanged(ushort obj)
+    {
+        combatState = null;
+        skipInitial = false;
+        activeEntry = null;
+        encounterTimer.Stop();
+        sw.Stop();
+        actionQueue.Clear();
+        actionDelay = 0;
+        actionRetries = 0;
     }
 
     public void Dispose()
@@ -86,85 +122,70 @@ public sealed class Plugin : IDalamudPlugin
 #if DEBUG
         CommandManager.RemoveHandler(DebugName);
 #endif
-
     }
 
-    private void OnTerritoryChanged(ushort obj)
+    private void DutyState_DutyRecommenced(object? sender, ushort e)
     {
-        if (Configuration.TerritoryInitialStrategy.ContainsKey(obj))
-        {
-            var val = Configuration.TerritoryInitialStrategy[obj];
-            if (!val.Enabled) return;
-            delay = 200;
-            actionQueue.Enqueue(() => OpenTofuPreviewOnTerritoryChange(val));
-        }
+        SearchAndRunInitState(ClientState.TerritoryType);
     }
 
-    private unsafe bool OpenTofuPreviewOnTerritoryChange(Common.StrategyConfigEntry entry)
+    private void DutyState_DutyStarted(object? sender, ushort e)
     {
-        Utility.HideTofu();
-        Utility.ShowTofu();
-
-        var idx = FindBoardPosition(entry.Strategy);
-        if (idx < -1 || idx > 49)
-        {
-            Log.Error($"An error occurred in calculating the strategy position.\nCalculated position: {idx}");
-            OnDebug("", "");
-            return false;
-        }
-        actionQueue.Enqueue(() => Utility.PeekBoard((uint)idx));
-        actionQueue.Enqueue(Utility.ReviewBoard);
-        return true;
+        SearchAndRunInitState(ClientState.TerritoryType);
     }
 
-    // maps strategy board the index to TofuList entry # to view the corresponding board
-    private unsafe int FindBoardPosition(Common.Strategy strategy)
+    private void OnConditionChange(ConditionFlag flag, bool value)
     {
-        var tofuModule = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
-        if (tofuModule == null) return -1;
-        var tofuChild = tofuModule->TofuModuleChild;
-        if (tofuChild == null) return -1;
-        if (!strategy.IsFolder)
+        if (flag != ConditionFlag.InCombat) return;
+
+        if (value)
         {
-            // if selected is a singular board, only need to get position in list
-            // and add number of the folders that came before it
-            var board = tofuChild->SavedBoards[strategy.Index];
-            var parentFolder = tofuChild->SavedFolders[board.Folder];
-            return board.PositionInList + parentFolder.PositionInList;
+            Log.Info("COMBAT START");
+            encounterTimer.Restart();
         } else
         {
-            // if selected is a folde,r just get the first board in the folder
-            // should be the same thing (hopefully)
-            var folder = tofuChild->SavedFolders[strategy.Index];
-            //Log.Debug($"Folder {folder.Index}: {folder.Title}, {folder.PositionInList}");
-            var lowestInFolder = 100;
-            foreach(var board in tofuChild->SavedBoards)
-            {
-                if (!board.IsValid) continue;
-                if (board.Folder != strategy.Index) continue;
-                if (board.PositionInList < lowestInFolder)
-                {
-                    lowestInFolder = board.PositionInList;
-                    //Log.Debug($"Lowest board {board.Index}: {board.Title}, {board.PositionInList}");
-                }
-            }
-            return lowestInFolder + folder.PositionInList;
+            Log.Info("COMBAT STOP");
+            encounterTimer.Stop();
         }
+        combatState = value;
     }
 
     private void OnFrameworkUpdate(IFramework framework)
     {
-        if (!sw.IsRunning && delay > 0)
-        {
-            sw.Restart();
-        }
+        HandleActionQueue();
+        HandleWeather();
+        HandleEncounterTimer();
+    }
 
-        if (actionQueue.Count == 0 || (delay > 0 && sw.ElapsedMilliseconds < delay))
+    private void HandleEncounterTimer()
+    {
+        if (!encounterTimer.IsRunning) return;
+        if (activeEntry == null) return;
+        if (skipInitial) return;
+        var curr = currentEntry.Current;
+        if (encounterTimer.Elapsed.Seconds < curr.Key) return;
+        Log.Debug("Hallo");
+        if (curr.Value.Enabled)
         {
-            return;
+            Log.Debug("handleEncounterTimer");
+            actionQueue.Enqueue(() => {
+                if (OpenStrategy(curr.Value))
+                {
+                    if (!currentEntry.MoveNext()) activeEntry = null;
+                    return true;
+                }
+                return false;
+            });
         }
-        var oldDelay = delay;
-        delay = 0;
+    }
+
+    private void HandleActionQueue()
+    {
+        if (!sw.IsRunning && actionDelay > 0) sw.Restart();
+        if (actionQueue.Count == 0 || (actionDelay > 0 && sw.ElapsedMilliseconds < actionDelay)) return;
+
+        var oldDelay = actionDelay;
+        actionDelay = 0;
         sw.Stop();
 
         try
@@ -173,15 +194,16 @@ public sealed class Plugin : IDalamudPlugin
             {
                 if (next())
                 {
-                    retries = 0;
+                    actionRetries = 0;
                     actionQueue.Dequeue();
-                } else
+                }
+                else
                 {
-                    retries++;
-                    delay = oldDelay;
-                    if (retries > 10)
+                    actionRetries++;
+                    actionDelay = Math.Clamp(oldDelay * 2, 200, 5000);
+                    if (actionRetries > 10)
                     {
-                        retries = 0;
+                        actionRetries = 0;
                         actionQueue.Clear();
                         Log.Error("Last action failed too many times. Aborting entire queue.");
                     }
@@ -190,11 +212,140 @@ public sealed class Plugin : IDalamudPlugin
         }
         catch (Exception ex)
         {
-            Log.Error($"Failed: {ex.ToString()}");
+            Log.Error($"Action failed {ex.Message}: {ex.StackTrace}");
         }
     }
 
-    private unsafe void OnCommand(string command, string args) => ConfigWindow.Toggle();
+    private unsafe void HandleWeather()
+    {
+        var weatherManager = WeatherManager.Instance();
+        if (weatherManager == null) return;
+        var currentWeather = weatherManager->GetCurrentWeather();
+        if (weather == currentWeather) return;
+
+        Log.Debug($"Weather changed: {weather} -> {currentWeather}");
+        if (encounterTimer.IsRunning && DutyState.IsDutyStarted)
+        {
+            var changedBoards = false;
+            var territory = ClientState.TerritoryType;
+
+            if (Configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
+            {
+                // only consider weather triggers, prioritize ones with a oldweather check
+                var bestMatch = Configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
+                        e.Type == ConfigTriggerType.Weather &&
+                        e.OldWeatherEnabled &&
+                        e.OldWeatherId == weather &&
+                        e.NewWeather == currentWeather)
+                    ?? Configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
+                        e.Type == ConfigTriggerType.Weather &&
+                        e.NewWeather == currentWeather);
+
+                if (bestMatch != null)
+                {
+                    activeEntry = bestMatch.Boards;
+                    changedBoards = true;
+                    Log.Info("Weather: active entry changed!");
+                }
+            }
+
+            if (changedBoards) RunActiveBoard(true);
+        }
+
+        weather = currentWeather;
+        if (encounterTimer.IsRunning)
+        {
+            Log.Debug("Restarted Encounter Timer");
+            encounterTimer.Restart();
+        }
+    }
+
+    // gets the set of triggers that should be shown at the beginning/prepull
+    public void SearchAndRunInitState(ushort territory)
+    {
+        activeEntry = null;
+        if (Configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
+        {
+            var list = Configuration.StrategyBoardTriggerOptions[territory];
+            // prioritize triggers with weather then timer triggers
+            var bestMatch = list.FirstOrDefault(e => e.Type == ConfigTriggerType.Weather && !e.OldWeatherEnabled && e.NewWeather == weather)
+             ?? list.FirstOrDefault(e => e.Type == ConfigTriggerType.Timer);
+            if (bestMatch != null)
+            {
+                activeEntry = bestMatch.Boards;
+                Log.Info($"SearchAndRunInitState: {bestMatch.Boards.Count} total boards");
+                RunActiveBoard(false);
+            }
+        }
+    }
+
+    private void RunActiveBoard(bool isWeatherHandler = false)
+    {
+        if (activeEntry != null)
+        {
+            currentEntry = activeEntry.GetEnumerator();
+            if (currentEntry.MoveNext())
+            {
+                var curr = currentEntry.Current;
+                if (curr.Value.Enabled && curr.Key <= 0)
+                {
+                    // stupid way to avoid the weather handler and encounter timer handler
+                    // both running at the same time and triggering the initial strategy twice
+                    // i prob should redesign this but it works:tm:
+                    if (isWeatherHandler) skipInitial = true;
+                    actionDelay = 200;
+                    actionQueue.Enqueue(() => {
+                        if (OpenStrategy(curr.Value))
+                        {
+                            if (!currentEntry.MoveNext()) activeEntry = null;
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (isWeatherHandler)
+                    {
+                        actionQueue.Enqueue(() =>
+                        {
+                            skipInitial = false;
+                            return true;
+                        });
+                    }
+                }
+            }
+            else
+            {
+                activeEntry = null;
+            }
+        }
+    }
+
+    private bool OpenStrategy(StrategyConfigEntry entry)
+    {
+        try
+        {
+            if (Utility.ShouldWait()) return false;
+            Utility.HideTofu();
+            Utility.ShowTofu();
+            Log.Info($"Opening strategy board: {entry.Strategy.Title}");
+            var idx = FindBoardPosition(entry.Strategy);
+            if (idx < -1 || idx > 49)
+            {
+                Log.Error($"An error occurred in calculating the strategy position.\nCalculated position: {idx}");
+                OnDebug("", "");
+                return false;
+            }
+            actionQueue.Enqueue(() => Utility.PeekBoard((uint)idx));
+            actionQueue.Enqueue(Utility.ReviewBoard);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error($"{e.Message}: {e.StackTrace}");
+            return false;
+        }
+    }
+
+    private void OnCommand(string command, string args) => ConfigWindow.Toggle();
     private void DebugTerritory(string command, string args) => OnTerritoryChanged(ClientState.TerritoryType);
     private unsafe void OnDebug(string command, string args)
     {
