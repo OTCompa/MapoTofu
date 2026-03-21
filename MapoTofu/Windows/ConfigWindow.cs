@@ -236,7 +236,7 @@ public class ConfigWindow : Window, IDisposable
                 configuration.Save();
                 if (selectedTerritory == Plugin.ClientState.TerritoryType)
                 {
-                    plugin.SearchAndRunInitState(Plugin.ClientState.TerritoryType);
+                    plugin.ActiveStrategyManager.SearchAndRunInitState(Plugin.ClientState.TerritoryType);
                 }
                 
                 pendingChanges = false;
