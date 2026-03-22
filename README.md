@@ -3,11 +3,13 @@ Mapo Tofu is a Dalamud plugin for FINAL FANTASY XIV that automatically opens a s
 Never forget to open a strategy board again!
 ## Main Points
 - Automatically open a strategy board based on territory
-- (PLANNED) Automatically swap to a specific strategy board based on encounter timer/phases (weather)
+- Automatically swap to a specific strategy board based on encounter timer/phases (weather)
 
+## In progress/Planned
+- Add way to import/export triggers
+- Maybe import native strategy boards along side triggers?
 ## How To Use
 ### Getting Started
-(Boilerplate here, not actually on the repo yet until I've implemented the 2nd point)
 - Type `/xlsettings` in the chatbox or open up Dalamud's settings menu
 - Open the "Experimental" tab and scroll down to the "Custom Plugin Repositories" section
 
