@@ -5,7 +5,7 @@ Never forget to open a strategy board again!
 - Automatically open a strategy board based on territory
 - Automatically swap to a specific strategy board based on encounter timer/phases (weather)
 
-## In progress/Planned
+## In Progress/Planned
 - Add way to import/export triggers
 - Maybe import native strategy boards along side triggers?
 ## How To Use
