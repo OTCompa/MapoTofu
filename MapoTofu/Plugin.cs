@@ -30,6 +30,7 @@ public sealed class Plugin : IDalamudPlugin
     internal ActiveStrategyManager ActiveStrategyManager { get; init; }
     internal EncounterManager EncounterManager { get; init; }
     internal Weather Weather { get; init; }
+    internal HistoryManager HistoryManager { get; init; }
 
 #if DEBUG
     private const string DebugName = "/mptfd";
@@ -37,7 +38,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin()
     {
-        Log.MinimumLogLevel = Serilog.Events.LogEventLevel.Error;
+        //Log.MinimumLogLevel = Serilog.Events.LogEventLevel.Error;
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         ConfigWindow = new ConfigWindow(this);
@@ -56,6 +57,7 @@ public sealed class Plugin : IDalamudPlugin
         Weather = new();
         ActiveStrategyManager = new(ActionManager, Configuration, Weather);
         EncounterManager = new(ActionManager, ActiveStrategyManager, Configuration, Weather);
+        HistoryManager = new(Configuration, EncounterManager, Weather);
 
 #if DEBUG
         CommandManager.AddHandler(DebugName, new CommandInfo(DebugTerritory)

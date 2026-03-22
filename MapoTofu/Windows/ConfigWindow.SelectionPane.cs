@@ -127,13 +127,6 @@ public partial class ConfigWindow
         pendingChanges = false;
     }
 
-    private string GetTerritoryName(ushort territory)
-    {
-        if (!territoryLUT.ContainsKey(territory))
-        {
-            territoryLUT[territory] = Plugin.DataManager.GetExcelSheet<TerritoryType>().GetRow(territory)
-                .PlaceName.Value.Name.ToString() ?? "Unknown";
-        }
-        return territoryLUT[territory];
-    }
+    private static string GetTerritoryName(ushort territory) => Plugin.DataManager.GetExcelSheet<TerritoryType>().GetRow(territory).PlaceName.Value.Name.ToString();
+    private static string GetWeatherName(ushort weather) => Plugin.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Weather>().GetRow(weather).Name.ToString();
 }

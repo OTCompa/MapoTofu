@@ -8,13 +8,27 @@ using static MapoTofu.Common;
 
 namespace MapoTofu;
 
-internal class ActiveStrategyManager(ActionManager actionManager, Configuration configuration, Weather weather)
+internal class ActiveStrategyManager
 {
-    internal Weather? weather = weather;
+    private ActionManager actionManager;
+    private Configuration configuration;
+    private Weather weather;
 
     public SortedDictionary<int, StrategyConfigEntry>? activeEntry = null;
     public SortedDictionary<int, StrategyConfigEntry>.Enumerator currentEntry;
     public bool encounterManagerShouldSkip = false;
+
+    public ActiveStrategyManager(ActionManager actionManager, Configuration configuration, Weather weather)
+    {
+        this.actionManager = actionManager;
+        this.configuration = configuration;
+        this.weather = weather;
+
+        if (configuration.CheckOnPluginLoad)
+        {
+            SearchAndRunInitState(Plugin.ClientState.TerritoryType);
+        }
+    }
 
     public void SearchAndRunInitState(ushort territory)
     {
