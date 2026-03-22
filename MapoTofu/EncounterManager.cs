@@ -1,5 +1,6 @@
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -86,7 +87,7 @@ internal class EncounterManager : IDisposable
         activeStrategyManager.SearchAndRunInitState();
     }
 
-    private void OnConditionChange(ConditionFlag flag, bool value)
+    private unsafe void OnConditionChange(ConditionFlag flag, bool value)
     {
         if (flag != ConditionFlag.InCombat) return;
 
@@ -109,22 +110,27 @@ internal class EncounterManager : IDisposable
     private void OnWeatherChanged(ushort oldWeather, ushort newWeather)
     {
         if (!encounterTimer.IsRunning) return;
+        if (activeStrategyManager.activeEntry != null && !activeStrategyManager.activeEntry.IsInterruptable) return;
         var territory = Plugin.ClientState.TerritoryType;
         if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
         {
             // only consider weather triggers, prioritize ones with a oldweather check
-            var bestMatch = configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
-                    e.Type == Common.ConfigTriggerType.Weather &&
-                    e.OldWeatherEnabled &&
-                    e.OldWeatherId == oldWeather &&
-                    e.NewWeather == newWeather)
-                ?? configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
-                    e.Type == Common.ConfigTriggerType.Weather &&
-                    e.NewWeather == newWeather);
+            var inCombat = Plugin.Condition[ConditionFlag.InCombat];
+            var bestMatch = configuration.StrategyBoardTriggerOptions[territory]
+                .Where(e => e.Type == Common.ConfigTriggerType.Weather && e.NewWeather == newWeather)
+                .Where(e => e.WeatherSetting switch
+                {
+                    Common.ConfigWeatherSetting.OnlyInCombat => inCombat,
+                    Common.ConfigWeatherSetting.OnlyOutCombat => !inCombat,
+                    _ => true
+                })
+                .Where(e => !e.OldWeatherEnabled || (e.OldWeatherEnabled && e.OldWeatherId == oldWeather))
+                .OrderByDescending(e => e.OldWeatherEnabled)
+                .FirstOrDefault();
 
             if (bestMatch != null)
             {
-                activeStrategyManager.activeEntry = bestMatch.Boards;
+                activeStrategyManager.activeEntry = bestMatch;
                 Plugin.Log.Debug("Weather: active entry changed!");
                 activeStrategyManager.InitializeActiveBoard(true);
             }

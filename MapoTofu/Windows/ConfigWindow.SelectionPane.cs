@@ -122,6 +122,8 @@ public partial class ConfigWindow
         oldWeatherEnabledInput = triggerEntry.OldWeatherEnabled;
         oldWeatherInput = triggerEntry.OldWeatherId;
         boardsInput = new(triggerEntry.Boards);
+        weatherSettingInput = triggerEntry.WeatherSetting;
+        isInterruptibleInput = triggerEntry.IsInterruptable;
 
         timeInput = 0;
         pendingChanges = false;

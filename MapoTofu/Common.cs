@@ -20,6 +20,13 @@ public class Common
         Weather
     }
 
+    public enum ConfigWeatherSetting
+    {
+        Any,
+        OnlyInCombat,
+        OnlyOutCombat
+    }
+
     public class StrategyConfigEntry(Strategy Strategy)
     {
         public bool Enabled = true;
@@ -36,6 +43,8 @@ public class Common
         public bool OldWeatherEnabled = false;
         public int OldWeatherId = 0;
         public SortedDictionary<int, StrategyConfigEntry> Boards = [];
+        public ConfigWeatherSetting WeatherSetting = ConfigWeatherSetting.Any;
+        public bool IsInterruptable = true;
 
         public TriggerEntry() { }
 

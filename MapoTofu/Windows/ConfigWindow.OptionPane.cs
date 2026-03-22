@@ -19,11 +19,13 @@ public partial class ConfigWindow
     private int newWeatherInput = -1;
     private bool oldWeatherEnabledInput = false;
     private int oldWeatherInput = -1;
+    private ConfigWeatherSetting weatherSettingInput = ConfigWeatherSetting.Any;
     private int timeInput = -1;
     private TriggerEntry triggerEntryInput = new();
     private int territoryInput = 0;
     public SortedDictionary<int, StrategyConfigEntry> boardsInput = [];
     private Strategy? selectedStrategy = null;
+    private bool isInterruptibleInput = true;
 
     private bool pendingChanges = false;
 
@@ -62,6 +64,8 @@ public partial class ConfigWindow
     private void DrawTriggerEntryFields()
     {
         pendingChanges |= ImGui.Checkbox("Enabled###TriggerEnabled", ref enabledInput);
+        ImGui.SameLine();
+        pendingChanges |= ImGui.Checkbox("Interruptible###TriggerInterrupt", ref isInterruptibleInput);
 
         using (ImRaii.ItemWidth(250))
         {
@@ -84,6 +88,7 @@ public partial class ConfigWindow
             }
             using (ImRaii.Disabled(typeInput != ConfigTriggerType.Weather))
             {
+                ComboWeatherSetting();
                 var checkboxSize = ImGui.GetTextLineHeight() + ImGui.GetStyle().FramePadding.Y * 2;
                 pendingChanges |= ImGui.InputInt("New Weather Id", ref newWeatherInput);
                 pendingChanges |= ImGui.Checkbox("###OldWeatherEnabled", ref oldWeatherEnabledInput);
@@ -115,6 +120,8 @@ public partial class ConfigWindow
                     triggerEntryInput.OldWeatherEnabled = oldWeatherEnabledInput;
                     triggerEntryInput.OldWeatherId = oldWeatherInput;
                     triggerEntryInput.Boards = boardsInput;
+                    triggerEntryInput.WeatherSetting = weatherSettingInput;
+                    triggerEntryInput.IsInterruptable = isInterruptibleInput;
                     configuration.StrategyBoardTriggerOptions[selectedTerritory].Add(new(triggerEntryInput));
                     selectedEntry = configuration.StrategyBoardTriggerOptions[selectedTerritory].Count - 1;
                 }
@@ -127,6 +134,8 @@ public partial class ConfigWindow
                     configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].OldWeatherEnabled = oldWeatherEnabledInput;
                     configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].OldWeatherId = oldWeatherInput;
                     configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].Boards = boardsInput;
+                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].WeatherSetting = weatherSettingInput;
+                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].IsInterruptable = isInterruptibleInput;
                 }
 
                 configuration.Save();
@@ -161,10 +170,7 @@ public partial class ConfigWindow
                 var timeEntry = boardsInput[key];
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
-                if (ImGui.Checkbox($"###Enabled", ref timeEntry.Enabled))
-                {
-
-                }
+                pendingChanges |= ImGui.Checkbox($"###Enabled", ref timeEntry.Enabled);
                 ImGui.TableNextColumn();
                 ImGui.Text($"{key}s");
                 ImGui.TableNextColumn();
@@ -233,6 +239,32 @@ public partial class ConfigWindow
             }
         }
     }
+
+    private void ComboWeatherSetting()
+    {
+        using (var combo = ImRaii.Combo($"Combat Condition###MPTFWeatherSetting", GetWeatherSettingText(weatherSettingInput)))
+        {
+            if (!combo.Success) return;
+            var idx = 0;
+            foreach (var val in Enum.GetValues<ConfigWeatherSetting>())
+            {
+                if (ImGui.Selectable($"{GetWeatherSettingText(val)}###{idx}"))
+                {
+                    pendingChanges = true;
+                    weatherSettingInput = val;
+                }
+                idx++;
+            }
+        }
+    }
+
+    private static string GetWeatherSettingText(ConfigWeatherSetting weatherSetting) => weatherSetting switch
+    {
+        ConfigWeatherSetting.Any => "Any",
+        ConfigWeatherSetting.OnlyInCombat => "Only in combat",
+        ConfigWeatherSetting.OnlyOutCombat => "Only out of combat",
+        _ => "Unknown"
+    };
 
     private unsafe void PopulateStrategyData()
     {

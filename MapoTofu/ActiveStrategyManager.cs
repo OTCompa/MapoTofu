@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Conditions;
 using MapoTofu.Structs;
 using Serilog;
 using System;
@@ -14,7 +15,7 @@ internal class ActiveStrategyManager
     private readonly Configuration configuration;
     private readonly Weather weather;
 
-    public SortedDictionary<int, StrategyConfigEntry>? activeEntry = null;
+    public TriggerEntry? activeEntry = null;
     public SortedDictionary<int, StrategyConfigEntry>.Enumerator currentEntry;
     public bool encounterManagerShouldSkip = false;
 
@@ -38,12 +39,22 @@ internal class ActiveStrategyManager
         if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
         {
             var list = configuration.StrategyBoardTriggerOptions[territory];
+            var inCombat = Plugin.Condition[ConditionFlag.InCombat];
             // prioritize triggers with weather then timer triggers
-            var bestMatch = list.FirstOrDefault(e => e.Type == ConfigTriggerType.Weather && !e.OldWeatherEnabled && weather != null && e.NewWeather == weather.weather)
-             ?? list.FirstOrDefault(e => e.Type == ConfigTriggerType.Timer);
+            var bestMatch = list.Where(e => e.Type == ConfigTriggerType.Weather && e.NewWeather == weather.weather)
+                .Where(e => !e.OldWeatherEnabled)
+                .Where(e => e.WeatherSetting switch
+                {
+                    ConfigWeatherSetting.OnlyInCombat => inCombat,
+                    ConfigWeatherSetting.OnlyOutCombat => !inCombat,
+                    _ => true
+                })
+                .FirstOrDefault() ??
+                list.FirstOrDefault(e => e.Type == ConfigTriggerType.Timer);
+
             if (bestMatch != null)
             {
-                activeEntry = bestMatch.Boards;
+                activeEntry = bestMatch;
                 Plugin.Log.Debug($"SearchAndRunInitState: {bestMatch.Boards.Count} total boards");
                 InitializeActiveBoard(encounterManagerShouldSkip);
             } else
@@ -60,7 +71,7 @@ internal class ActiveStrategyManager
     {
         if (activeEntry != null)
         {
-            currentEntry = activeEntry.GetEnumerator();
+            currentEntry = activeEntry.Boards.GetEnumerator();
             if (currentEntry.MoveNext())
             {
                 var curr = currentEntry.Current;
