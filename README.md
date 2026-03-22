@@ -7,7 +7,10 @@ Never forget to open a strategy board again!
 
 ## In Progress/Planned
 - Add way to import/export triggers
+- Traverse strategy boards in the same folder without going back to the list
 - Maybe import native strategy boards along side triggers?
+- Load in saved strategy boards in the preview window without going back to the list?
+
 ## How To Use
 ### Getting Started
 - Type `/xlsettings` in the chatbox or open up Dalamud's settings menu
