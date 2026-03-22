@@ -16,8 +16,6 @@ internal class EncounterManager : IDisposable
     private readonly Configuration configuration;
     private readonly Weather weather;
 
-    public bool? combatState = null;
-
     public readonly Stopwatch encounterTimer = new();
 
     public EncounterManager(ActionManager actionManager, ActiveStrategyManager activeStrategyManager, Configuration configuration, Weather weather)
@@ -69,7 +67,6 @@ internal class EncounterManager : IDisposable
 
     internal void OnTerritoryChanged(ushort obj)
     {
-        combatState = null;
         encounterTimer.Stop();
         activeStrategyManager.encounterManagerShouldSkip = false;
         activeStrategyManager.activeEntry = null;
@@ -81,13 +78,12 @@ internal class EncounterManager : IDisposable
 
     private void OnDutyRecommenced(object? sender, ushort e)
     {
-        activeStrategyManager.SearchAndRunInitState(Plugin.ClientState.TerritoryType);
+        activeStrategyManager.SearchAndRunInitState();
     }
 
     private void OnDutyStarted(object? sender, ushort e)
     {
-        Plugin.Log.Debug("Duty started");
-        activeStrategyManager.SearchAndRunInitState(Plugin.ClientState.TerritoryType);
+        activeStrategyManager.SearchAndRunInitState();
     }
 
     private void OnConditionChange(ConditionFlag flag, bool value)
@@ -98,48 +94,42 @@ internal class EncounterManager : IDisposable
         {
             Plugin.Log.Debug("COMBAT START");
             encounterTimer.Restart();
+            if (activeStrategyManager.activeEntry == null)
+            {
+                activeStrategyManager.SearchAndRunInitState(true);
+            }
         }
         else
         {
             Plugin.Log.Debug("COMBAT STOP");
             encounterTimer.Stop();
         }
-        combatState = value;
     }
 
     private void OnWeatherChanged(ushort oldWeather, ushort newWeather)
     {
-        if (encounterTimer.IsRunning && Plugin.DutyState.IsDutyStarted)
+        if (!encounterTimer.IsRunning) return;
+        var territory = Plugin.ClientState.TerritoryType;
+        if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
         {
-            var changedBoards = false;
-            var territory = Plugin.ClientState.TerritoryType;
+            // only consider weather triggers, prioritize ones with a oldweather check
+            var bestMatch = configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
+                    e.Type == Common.ConfigTriggerType.Weather &&
+                    e.OldWeatherEnabled &&
+                    e.OldWeatherId == oldWeather &&
+                    e.NewWeather == newWeather)
+                ?? configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
+                    e.Type == Common.ConfigTriggerType.Weather &&
+                    e.NewWeather == newWeather);
 
-            if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
+            if (bestMatch != null)
             {
-                // only consider weather triggers, prioritize ones with a oldweather check
-                var bestMatch = configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
-                        e.Type == Common.ConfigTriggerType.Weather &&
-                        e.OldWeatherEnabled &&
-                        e.OldWeatherId == oldWeather &&
-                        e.NewWeather == newWeather)
-                    ?? configuration.StrategyBoardTriggerOptions[territory].FirstOrDefault(e =>
-                        e.Type == Common.ConfigTriggerType.Weather &&
-                        e.NewWeather == newWeather);
-
-                if (bestMatch != null)
-                {
-                    activeStrategyManager.activeEntry = bestMatch.Boards;
-                    changedBoards = true;
-                    Plugin.Log.Debug("Weather: active entry changed!");
-                }
+                activeStrategyManager.activeEntry = bestMatch.Boards;
+                Plugin.Log.Debug("Weather: active entry changed!");
+                activeStrategyManager.InitializeActiveBoard(true);
             }
-
-            if (changedBoards) activeStrategyManager.InitializeActiveBoard(true);
         }
-        if (encounterTimer.IsRunning)
-        {
-            Plugin.Log.Debug("Restarted Encounter Timer");
-            encounterTimer.Restart();
-        }
+        Plugin.Log.Debug("Restarted Encounter Timer");
+        encounterTimer.Restart();
     }
 }

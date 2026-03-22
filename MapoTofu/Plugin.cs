@@ -39,6 +39,11 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Log.MinimumLogLevel = Serilog.Events.LogEventLevel.Error;
+
+#if DEBUG
+        Log.MinimumLogLevel = Serilog.Events.LogEventLevel.Verbose;
+#endif
+
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         ConfigWindow = new ConfigWindow(this);
@@ -64,7 +69,6 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = ""
         });
-        Log.MinimumLogLevel = Serilog.Events.LogEventLevel.Verbose;
         ConfigWindow.Toggle();
 #endif
     }

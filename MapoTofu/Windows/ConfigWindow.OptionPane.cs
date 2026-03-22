@@ -13,7 +13,6 @@ namespace MapoTofu.Windows;
 
 public partial class ConfigWindow
 {
-
     private bool enabledInput = false;
     private string labelInput = "";
     private ConfigTriggerType typeInput = ConfigTriggerType.Timer;
@@ -133,7 +132,7 @@ public partial class ConfigWindow
                 configuration.Save();
                 if (selectedTerritory == Plugin.ClientState.TerritoryType)
                 {
-                    plugin.ActiveStrategyManager.SearchAndRunInitState(Plugin.ClientState.TerritoryType);
+                    plugin.ActiveStrategyManager.SearchAndRunInitState();
                 }
 
                 pendingChanges = false;

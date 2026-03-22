@@ -99,10 +99,17 @@ public partial class ConfigWindow : Window, IDisposable
 
     private void DrawConfigTab()
     {
+        var changed = false;
+
         using (ImRaii.ItemWidth(100))
         {
-            ImGui.Checkbox("Check triggers on plugin load", ref configuration.CheckOnPluginLoad);
-            ImGui.InputUInt("Maximum history entries", ref configuration.MaxHistoryEntries);
+            changed |= ImGui.Checkbox("Check triggers on plugin load", ref configuration.CheckOnPluginLoad);
+            changed |= ImGui.InputUInt("Maximum history entries", ref configuration.MaxHistoryEntries);
+        }
+
+        if (changed)
+        {
+            configuration.Save();
         }
     }
 

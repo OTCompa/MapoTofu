@@ -31,9 +31,9 @@ internal class Weather : IDisposable
         if (weatherManager == null) return;
         var newWeather = weatherManager->GetCurrentWeather();
         if (weather == newWeather) return;
-
-        Plugin.Log.Debug($"Weather changed: {weather} -> {newWeather}");
-        OnWeatherChanged?.Invoke(weather, newWeather);
+        var oldWeather = weather;
         weather = newWeather;
+        Plugin.Log.Debug($"Weather changed: {oldWeather} -> {newWeather}");
+        OnWeatherChanged?.Invoke(oldWeather, newWeather);
     }
 }

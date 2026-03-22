@@ -10,9 +10,9 @@ namespace MapoTofu;
 
 internal class ActiveStrategyManager
 {
-    private ActionManager actionManager;
-    private Configuration configuration;
-    private Weather weather;
+    private readonly ActionManager actionManager;
+    private readonly Configuration configuration;
+    private readonly Weather weather;
 
     public SortedDictionary<int, StrategyConfigEntry>? activeEntry = null;
     public SortedDictionary<int, StrategyConfigEntry>.Enumerator currentEntry;
@@ -26,11 +26,13 @@ internal class ActiveStrategyManager
 
         if (configuration.CheckOnPluginLoad)
         {
-            SearchAndRunInitState(Plugin.ClientState.TerritoryType);
+            SearchAndRunInitState();
         }
     }
 
-    public void SearchAndRunInitState(ushort territory)
+    public void SearchAndRunInitState(bool encounterManagerShouldSkip = false) => SearchAndRunInitState(Plugin.ClientState.TerritoryType, encounterManagerShouldSkip);
+
+    public void SearchAndRunInitState(ushort territory, bool encounterManagerShouldSkip)
     {
         activeEntry = null;
         if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
@@ -43,7 +45,7 @@ internal class ActiveStrategyManager
             {
                 activeEntry = bestMatch.Boards;
                 Plugin.Log.Debug($"SearchAndRunInitState: {bestMatch.Boards.Count} total boards");
-                InitializeActiveBoard(false);
+                InitializeActiveBoard(encounterManagerShouldSkip);
             } else
             {
                 Plugin.Log.Debug("No matching triggers found");
@@ -54,7 +56,7 @@ internal class ActiveStrategyManager
         }
     }
 
-    public void InitializeActiveBoard(bool isWeatherHandler = false)
+    public void InitializeActiveBoard(bool encounterManagerShouldSkip = false)
     {
         if (activeEntry != null)
         {
@@ -67,7 +69,7 @@ internal class ActiveStrategyManager
                     // stupid way to avoid the weather handler and encounter timer handler
                     // both running at the same time and triggering the initial strategy twice
                     // i prob should redesign this but it works:tm:
-                    if (isWeatherHandler) encounterManagerShouldSkip = true;
+                    if (encounterManagerShouldSkip) this.encounterManagerShouldSkip = true;
                     actionManager.actionDelay = 200;
                     actionManager.actionQueue.Enqueue(() => {
                         if (OpenStrategy(curr.Value))
@@ -77,11 +79,11 @@ internal class ActiveStrategyManager
                         }
                         return false;
                     });
-                    if (isWeatherHandler)
+                    if (encounterManagerShouldSkip)
                     {
                         actionManager.actionQueue.Enqueue(() =>
                         {
-                            encounterManagerShouldSkip = false;
+                            this.encounterManagerShouldSkip = false;
                             return true;
                         });
                     }
