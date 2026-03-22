@@ -60,32 +60,7 @@ public class Common
         }
     }
 
-    public class TriggerEntryPriority : IComparer<TriggerEntry>
-    {
-        private readonly int actualOld;
-        private readonly int actualNew;
-
-        public TriggerEntryPriority(int actualOld, int actualNew)
-        {
-            this.actualOld = actualOld;
-            this.actualNew = actualNew;
-        }
-
-        public int Compare(TriggerEntry x, TriggerEntry y)
-        {
-            return GetRank(x).CompareTo(GetRank(y));
-        }
-
-        private int GetRank(TriggerEntry e)
-        {
-            if (e.Type == ConfigTriggerType.Weather && e.OldWeatherEnabled && e.OldWeatherId == actualOld && e.NewWeather == actualNew) return 1;
-            if (e.Type == ConfigTriggerType.Weather && e.NewWeather == actualNew) return 2;
-            if (e.Type == ConfigTriggerType.Timer) return 3;
-            return 4;
-        }
-    }
-
-    // maps strategy board the index to TofuList entry # to view the corresponding board
+    // maps the strategy board index to TofuList entry # to view the corresponding board
     public static unsafe int FindBoardPosition(Strategy strategy)
     {
         var tofuModule = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
@@ -102,7 +77,7 @@ public class Common
         }
         else
         {
-            // if selected is a folde,r just get the first board in the folder
+            // if selected is a folder, just get the first board in the folder
             // should be the same thing (hopefully)
             var folder = tofuChild->SavedFolders[strategy.Index];
             //Log.Debug($"Folder {folder.Index}: {folder.Title}, {folder.PositionInList}");

@@ -1,6 +1,5 @@
 using Dalamud.Game.ClientState.Conditions;
 using MapoTofu.Structs;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -134,13 +133,13 @@ internal class ActiveStrategyManager
     }
 
     // check plugin's understanding of strategy board order
-    private unsafe void Debug()
+    public unsafe void Debug()
     {
         var tofu = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
-        Log.Debug($"{(nint)tofu:X02}");
+        Plugin.Log.Debug($"{(nint)tofu:X02}");
         if (tofu == null) return;
         var tofuChild = tofu->TofuModuleChild;
-        Log.Debug($"{(nint)tofuChild:X02}");
+        Plugin.Log.Debug($"{(nint)tofuChild:X02}");
         if (tofuChild == null) return;
         var sb = new StringBuilder();
 
@@ -175,6 +174,6 @@ internal class ActiveStrategyManager
             }
         }
 
-        Log.Debug(sb.ToString());
+        Plugin.Log.Debug(sb.ToString());
     }
 }

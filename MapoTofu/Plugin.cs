@@ -34,6 +34,7 @@ public sealed class Plugin : IDalamudPlugin
 
 #if DEBUG
     private const string DebugName = "/mptfd";
+    private const string PrintName = "/mptfp";
 #endif
 
     public Plugin()
@@ -69,6 +70,10 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = ""
         });
+        CommandManager.AddHandler(PrintName, new CommandInfo(DebugPrint)
+        {
+            HelpMessage = ""
+        });
         ConfigWindow.Toggle();
 #endif
     }
@@ -89,10 +94,12 @@ public sealed class Plugin : IDalamudPlugin
         ActionManager.Dispose();
 #if DEBUG
         CommandManager.RemoveHandler(DebugName);
+        CommandManager.RemoveHandler(PrintName);
 #endif
     }
 
     private void OnCommand(string command, string args) => ConfigWindow.Toggle();
     private void DebugTerritory(string command, string args) => EncounterManager.OnTerritoryChanged(ClientState.TerritoryType);
+    private void DebugPrint(string command, string args) => ActiveStrategyManager.Debug();
     public void ToggleConfigUi() => ConfigWindow.Toggle();
 }
