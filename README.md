@@ -22,7 +22,7 @@ Never forget to open a strategy board again!
 - Type `/xlplugins` in the chatbox or open up Dalamud's plugin installer menu
 - Search for `Mapo Tofu` and install.
 
-Once installed, you can open the config menu through the plugin installer to select one of the available voicepacks. 
+Once installed, you can open the config menu through the plugin installer to set up triggers for specific strategy boards.
 
 ### Building
 1. Open up `MapoTofu.sln` in your C# editor of choice (likely [Visual Studio 2022](https://visualstudio.microsoft.com) or [JetBrains Rider](https://www.jetbrains.com/rider/)).
