@@ -30,7 +30,7 @@ Once installed, you can open the config menu through the plugin installer to set
 3. The resulting plugin can be found at `MapoTofu/bin/x64/Debug/MapoTofu.dll` (or `Release` if appropriate.)
 
 ## Credits
-Voiced Nael Quotes heavily uses code from different projects and would not be possible if these did not exist.
+Mapo Tofu heavily uses code from different projects and would not be possible if these did not exist.
 Huge thanks to:
 - Wintermute for the boardobject struct
 - [PortraitFixer](https://github.com/Aida-Enna/XIVPlugins/tree/main/PortaitFixer) and further original sources for UI automation.
