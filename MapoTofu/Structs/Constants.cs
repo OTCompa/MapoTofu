@@ -1,3 +1,4 @@
+// TODO: decommission this with clientstructs 
 namespace MapoTofu.Structs;
 
 public class Constants

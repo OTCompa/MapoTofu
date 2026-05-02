@@ -1,3 +1,4 @@
+// TODO: decommission this with clientstructs 
 // taken from Wintermute, https://discord.com/channels/581875019861328007/653504487352303619/1458959023532544299 in the XIVlauncher discord
 using System;
 using System.Runtime.InteropServices;

@@ -1,3 +1,4 @@
+// TODO: decommission this with clientstructs 
 using System;
 using System.Runtime.InteropServices;
 

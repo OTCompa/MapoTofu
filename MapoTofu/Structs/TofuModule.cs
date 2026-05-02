@@ -1,4 +1,4 @@
-
+// TODO: decommission this with clientstructs 
 using System.Runtime.InteropServices;
 
 namespace MapoTofu.Structs;
