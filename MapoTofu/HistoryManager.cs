@@ -8,7 +8,7 @@ namespace MapoTofu;
 
 internal class HistoryManager : IDisposable
 {
-    public record struct HistoryEntry(uint Territory, ushort Weather, bool InCombat, DateTime Timestamp, int MsSinceLastWeather = -1);
+    public record struct HistoryEntry(uint CFC, ushort Weather, bool InCombat, DateTime Timestamp, int MsSinceLastWeather = -1);
 
     private readonly Configuration configuration;
     private readonly EncounterManager encounterManager;
@@ -57,14 +57,16 @@ internal class HistoryManager : IDisposable
     {
         delayedEntry.Stop();
 
+        if (Plugin.DutyState.ContentFinderCondition.RowId == 0) return;
+
         var newEntry = new HistoryEntry(
-            Plugin.ClientState.TerritoryType,
+            Plugin.DutyState.ContentFinderCondition.RowId,
             weather.weather,
             Plugin.Condition[ConditionFlag.InCombat],
             DateTime.Now
         );
 
-        if (lastEntry.HasValue && lastEntry.Value.Territory == Plugin.ClientState.TerritoryType)
+        if (lastEntry.HasValue && lastEntry.Value.CFC == Plugin.DutyState.ContentFinderCondition.RowId)
         {
             newEntry.MsSinceLastWeather = (int)(DateTime.Now - lastEntry.Value.Timestamp).TotalMilliseconds;
         }

@@ -30,16 +30,18 @@ internal class ActiveStrategyManager
         }
     }
 
-    public void SearchAndRunInitState(bool encounterManagerShouldSkip = false) => SearchAndRunInitState(Plugin.ClientState.TerritoryType, encounterManagerShouldSkip);
+    public void SearchAndRunInitState(bool encounterManagerShouldSkip = false) => SearchAndRunInitState(Plugin.DutyState.ContentFinderCondition.RowId, encounterManagerShouldSkip);
 
-    public void SearchAndRunInitState(uint territory, bool encounterManagerShouldSkip)
+    public void SearchAndRunInitState(uint cfcId, bool encounterManagerShouldSkip)
     {
         activeEntry = null;
-        if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
+        if (configuration.StrategyBoardTriggerOptions.ContainsKey(cfcId))
         {
-            var list = configuration.StrategyBoardTriggerOptions[territory];
+            var list = configuration.StrategyBoardTriggerOptions[cfcId];
             var inCombat = Plugin.Condition[ConditionFlag.InCombat];
+
             // prioritize triggers with weather then timer triggers
+            // this LINQ query was written by AI based on my original logic
             var bestMatch = list.Where(e => e.Type == ConfigTriggerType.Weather && e.NewWeather == weather.weather)
                 .Where(e => !e.OldWeatherEnabled)
                 .Where(e => e.WeatherSetting switch
@@ -62,47 +64,47 @@ internal class ActiveStrategyManager
             }
         } else
         {
-            Plugin.Log.Debug($"Triggers for territory {territory} not found");
+            Plugin.Log.Debug($"Triggers for territory {cfcId} not found");
         }
     }
 
     public void InitializeActiveBoard(bool encounterManagerShouldSkip = false)
     {
-        if (activeEntry != null)
+        if (activeEntry == null) return;
+
+        currentEntry = activeEntry.Boards.GetEnumerator();
+
+        if (currentEntry.MoveNext())
         {
-            currentEntry = activeEntry.Boards.GetEnumerator();
-            if (currentEntry.MoveNext())
+            var curr = currentEntry.Current;
+            if (curr.Value.Enabled && curr.Key <= 0)
             {
-                var curr = currentEntry.Current;
-                if (curr.Value.Enabled && curr.Key <= 0)
-                {
-                    // stupid way to avoid the weather handler and encounter timer handler
-                    // both running at the same time and triggering the initial strategy twice
-                    // i prob should redesign this but it works:tm:
-                    if (encounterManagerShouldSkip) this.encounterManagerShouldSkip = true;
-                    actionManager.actionDelay = 200;
-                    actionManager.actionQueue.Enqueue(() => {
-                        if (OpenStrategy(curr.Value))
-                        {
-                            if (!currentEntry.MoveNext()) activeEntry = null;
-                            return true;
-                        }
-                        return false;
-                    });
-                    if (encounterManagerShouldSkip)
+                // stupid way to avoid the weather handler and encounter timer handler
+                // both running at the same time and triggering the initial strategy twice
+                // i prob should redesign this but it works:tm:
+                if (encounterManagerShouldSkip) this.encounterManagerShouldSkip = true;
+                actionManager.actionDelay = 200;
+                actionManager.actionQueue.Enqueue(() => {
+                    if (OpenStrategy(curr.Value))
                     {
-                        actionManager.actionQueue.Enqueue(() =>
-                        {
-                            this.encounterManagerShouldSkip = false;
-                            return true;
-                        });
+                        if (!currentEntry.MoveNext()) activeEntry = null;
+                        return true;
                     }
+                    return false;
+                });
+                if (encounterManagerShouldSkip)
+                {
+                    actionManager.actionQueue.Enqueue(() =>
+                    {
+                        this.encounterManagerShouldSkip = false;
+                        return true;
+                    });
                 }
             }
-            else
-            {
-                activeEntry = null;
-            }
+        }
+        else
+        {
+            activeEntry = null;
         }
     }
 
@@ -143,6 +145,7 @@ internal class ActiveStrategyManager
         if (tofuChild == null) return;
         var sb = new StringBuilder();
 
+        // this LINQ query was written by AI based on my original logic
         var sortedTree = tofuChild->SavedFolders.ToArray()
             .Where(f => f.IsValid)
             .GroupJoin(

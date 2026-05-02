@@ -33,9 +33,9 @@ public class Common
         public Strategy Strategy = Strategy;
     };
 
-
     public class TriggerEntry
     {
+        public bool Migrated = false;
         public bool Enabled = true;
         public string Label = "";
         public ConfigTriggerType Type = ConfigTriggerType.Timer;

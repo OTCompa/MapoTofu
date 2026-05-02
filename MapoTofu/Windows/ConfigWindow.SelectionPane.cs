@@ -3,6 +3,7 @@ using Dalamud.Interface.Utility.Raii;
 using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 using System.Text;
 using static MapoTofu.Common;
@@ -11,30 +12,31 @@ namespace MapoTofu.Windows;
 
 public partial class ConfigWindow
 {
-    private bool newTerritory = false;
-    private int territoryToDelete = -1;
+    private bool newPlace = false;
+    private int placeToDelete = -1;
     private int triggerToDelete = -1;
 
     private void DrawSelectionPane()
     {
-        using (var c = ImRaii.Child("SelectionPane", new Vector2(300, 0), true))
+        using (var c = ImRaii.Child("SelectionPane", new Vector2(350, 0), true))
         {
             var n = 0;
-            foreach (var territory in configuration.StrategyBoardTriggerOptions)
+            foreach (var placeId in configuration.StrategyBoardTriggerOptions)
             {
                 using var _ = ImRaii.PushId(n);
-                using var tree = ImRaii.TreeNode($"{GetTerritoryName((ushort)territory.Key)} ({territory.Key})");
-                DrawContextMenuTerritory(territory.Key);
+                var name = placeId.Value[0].Migrated ? GetCFCName((ushort)placeId.Key) : GetTerritoryName((ushort)placeId.Key);
+                using var tree = ImRaii.TreeNode($"{name} ({placeId.Key})");
+                DrawContextMenuPlace(placeId.Key);
                 if (tree)
                 {
-                    for (var i = 0; i < territory.Value.Count; i++)
+                    for (var i = 0; i < placeId.Value.Count; i++)
                     {
                         using var __ = ImRaii.PushId(i);
-                        var selectedLoop = selectedTerritory == territory.Key && selectedEntry == i;
-                        if (ImGui.Selectable($"{territory.Value[i].Label}", selectedLoop))
+                        var selectedLoop = selectedPlace == placeId.Key && selectedEntry == i;
+                        if (ImGui.Selectable($"{placeId.Value[i].Label}", selectedLoop))
                         {
-                            OnSelect(territory.Value[i]);
-                            selectedTerritory = (int)territory.Key;
+                            OnSelect(placeId.Value[i]);
+                            selectedPlace = (int)placeId.Key;
                             selectedEntry = i;
                         }
                         DrawContextMenuTrigger((uint)i);
@@ -42,52 +44,52 @@ public partial class ConfigWindow
 
                     if (triggerToDelete > -1)
                     {
-                        if (selectedTerritory == territory.Key && selectedEntry == triggerToDelete) selectedEntry = -1;
-                        territory.Value.RemoveAt(triggerToDelete);
+                        if (selectedPlace == placeId.Key && selectedEntry == triggerToDelete) selectedEntry = -1;
+                        placeId.Value.RemoveAt(triggerToDelete);
                         configuration.Save();
                         triggerToDelete = -1;
                     }
 
-                    var selected = selectedTerritory == territory.Key && selectedEntry == -1;
+                    var selected = selectedPlace == placeId.Key && selectedEntry == -1;
                     if (ImGui.Selectable("Add trigger", selected))
                     {
-                        selectedTerritory = (int)territory.Key;
+                        selectedPlace = (int)placeId.Key;
                         selectedEntry = -1;
                         OnSelect(new());
                     }
                 }
             }
 
-            if (!newTerritory)
+            if (!newPlace)
             {
-                if (ImGui.Selectable("Add Territory"))
+                if (ImGui.Selectable("Add Content Finder ID"))
                 {
-                    territoryInput = Plugin.ClientState.TerritoryType;
-                    newTerritory = true;
+                    placeInput = Plugin.DutyState.ContentFinderCondition.RowId;
+                    newPlace = true;
                 }
             }
             else
             {
                 ImGui.SetNextItemWidth(100);
-                ImGui.InputUInt("Territory", ref territoryInput);
+                ImGui.InputUInt("Content Finder ID", ref placeInput);
                 ImGui.SameLine();
                 if (ImGui.Button("Add"))
                 {
-                    configuration.StrategyBoardTriggerOptions[territoryInput] = [];
-                    newTerritory = false;
+                    configuration.StrategyBoardTriggerOptions[placeInput] = [];
+                    newPlace = false;
                     configuration.Save();
                 }
                 ImGui.SameLine();
                 if (ImGui.Button("Cancel"))
                 {
-                    newTerritory = false;
+                    newPlace = false;
                 }
             }
 
-            if (territoryToDelete > -1)
+            if (placeToDelete > -1)
             {
-                configuration.StrategyBoardTriggerOptions.Remove((uint)territoryToDelete);
-                territoryToDelete = -1;
+                configuration.StrategyBoardTriggerOptions.Remove((uint)placeToDelete);
+                placeToDelete = -1;
                 configuration.Save();
             }
             n++;
@@ -103,13 +105,13 @@ public partial class ConfigWindow
             triggerToDelete = (int)i;
         }
     }
-    private void DrawContextMenuTerritory(uint i)
+    private void DrawContextMenuPlace(uint i)
     {
         using var c = ImRaii.ContextPopupItem($"TerritoryContextMenu###{i}");
         if (!c.Success) return;
         if (ImGui.MenuItem($"Delete###Territory{i}"))
         {
-            territoryToDelete = (int)i;
+            placeToDelete = (int)i;
         }
     }
 
@@ -130,5 +132,6 @@ public partial class ConfigWindow
     }
 
     private static string GetTerritoryName(uint territory) => Plugin.DataManager.GetExcelSheet<TerritoryType>().GetRow(territory).PlaceName.Value.Name.ToString();
+    private static string GetCFCName(uint cfc) => Plugin.DataManager.GetExcelSheet<ContentFinderCondition>().GetRow(cfc).Name.ExtractText();
     private static string GetWeatherName(uint weather) => Plugin.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Weather>().GetRow(weather).Name.ToString();
 }

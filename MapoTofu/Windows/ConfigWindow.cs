@@ -3,6 +3,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ public partial class ConfigWindow : Window, IDisposable
 
     private readonly List<Strategy> strategyData = [];
 
-    private int selectedTerritory = -1;
+    private int selectedPlace = -1;
     private int selectedEntry = -1;
 
 
@@ -88,7 +89,7 @@ public partial class ConfigWindow : Window, IDisposable
                     ImGui.Text(icon);
                 }
                 ImGui.TableNextColumn();
-                ImGui.TextWrapped($"{GetTerritoryName(entry.Territory)} ({entry.Territory})");
+                ImGui.TextWrapped($"{GetCFCName(entry.CFC)} ({entry.CFC})");
                 ImGui.TableNextColumn();
                 ImGui.TextWrapped($"{GetWeatherName(entry.Weather)} ({entry.Weather})");
 
@@ -105,6 +106,34 @@ public partial class ConfigWindow : Window, IDisposable
         {
             changed |= ImGui.Checkbox("Check triggers on plugin load", ref configuration.CheckOnPluginLoad);
             changed |= ImGui.InputUInt("Maximum history entries", ref configuration.MaxHistoryEntries);
+        }
+
+        if (ImGui.Button("Migrate to ContentFinderCondition (Only use if you used territory IDs)"))
+        {
+            var temp = new Dictionary<uint, List<TriggerEntry>>();
+            foreach(var territory in configuration.StrategyBoardTriggerOptions)
+            {
+                if (territory.Value.Count > 0)
+                {
+                    if (!territory.Value[0].Migrated)
+                    {
+                        var cfc = Plugin.DataManager.GetExcelSheet<ContentFinderCondition>().FirstOrDefault(r => r.TerritoryType.RowId == territory.Key).RowId;
+                        if (cfc > 0)
+                        {
+                            temp[cfc] = territory.Value;
+                            foreach(var ele in temp[cfc])
+                            {
+                                ele.Migrated = true;
+                            }
+                        }
+                    } else
+                    {
+                        temp[territory.Key] = territory.Value;
+                    }
+                }
+            }
+            configuration.StrategyBoardTriggerOptions = temp;
+            changed = true;
         }
 
         if (changed)

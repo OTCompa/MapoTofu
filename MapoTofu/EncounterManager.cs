@@ -115,6 +115,7 @@ internal class EncounterManager : IDisposable
         if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
         {
             // only consider weather triggers, prioritize ones with a oldweather check
+            // this LINQ query was written by AI based on my original logic
             var inCombat = Plugin.Condition[ConditionFlag.InCombat];
             var bestMatch = configuration.StrategyBoardTriggerOptions[territory]
                 .Where(e => e.Type == Common.ConfigTriggerType.Weather && e.NewWeather == newWeather)
