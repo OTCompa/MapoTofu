@@ -9,7 +9,7 @@ public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
 
-    public Dictionary<int, List<Common.TriggerEntry>> StrategyBoardTriggerOptions = [];
+    public Dictionary<uint, List<Common.TriggerEntry>> StrategyBoardTriggerOptions = [];
     public uint MaxHistoryEntries = 30;
     public bool CheckOnPluginLoad = true;
 

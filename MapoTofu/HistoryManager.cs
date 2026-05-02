@@ -8,7 +8,7 @@ namespace MapoTofu;
 
 internal class HistoryManager : IDisposable
 {
-    public record struct HistoryEntry(ushort Territory, ushort Weather, bool InCombat, DateTime Timestamp, int MsSinceLastWeather = -1);
+    public record struct HistoryEntry(uint Territory, ushort Weather, bool InCombat, DateTime Timestamp, int MsSinceLastWeather = -1);
 
     private readonly Configuration configuration;
     private readonly EncounterManager encounterManager;
@@ -40,7 +40,7 @@ internal class HistoryManager : IDisposable
         Plugin.Framework.Update -= OnFrameworkUpdate;
     }
 
-    private void OnTerritoryChanged(ushort obj)
+    private void OnTerritoryChanged(uint obj)
     {
         // edge case where source and destination have the same weather, thus OnWeatherChanged isn't called
         // OnTerritoryChanged triggers before the weather is set for the destination so we delay the entry

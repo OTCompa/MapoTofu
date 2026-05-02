@@ -32,7 +32,7 @@ internal class ActiveStrategyManager
 
     public void SearchAndRunInitState(bool encounterManagerShouldSkip = false) => SearchAndRunInitState(Plugin.ClientState.TerritoryType, encounterManagerShouldSkip);
 
-    public void SearchAndRunInitState(ushort territory, bool encounterManagerShouldSkip)
+    public void SearchAndRunInitState(uint territory, bool encounterManagerShouldSkip)
     {
         activeEntry = null;
         if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))

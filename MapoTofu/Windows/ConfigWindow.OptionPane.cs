@@ -22,7 +22,7 @@ public partial class ConfigWindow
     private ConfigWeatherSetting weatherSettingInput = ConfigWeatherSetting.Any;
     private int timeInput = -1;
     private TriggerEntry triggerEntryInput = new();
-    private int territoryInput = 0;
+    private uint territoryInput = 0;
     public SortedDictionary<int, StrategyConfigEntry> boardsInput = [];
     private Strategy? selectedStrategy = null;
     private bool isInterruptibleInput = true;
@@ -35,9 +35,9 @@ public partial class ConfigWindow
         {
             if (selectedTerritory != -1)
             {
-                if (configuration.StrategyBoardTriggerOptions.ContainsKey(selectedTerritory))
+                if (configuration.StrategyBoardTriggerOptions.ContainsKey((uint)selectedTerritory))
                 {
-                    var territory = configuration.StrategyBoardTriggerOptions[selectedTerritory];
+                    var territory = configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory];
                     if (territory.Count > selectedEntry)
                     {
                         DrawTriggerEntry();
@@ -108,9 +108,8 @@ public partial class ConfigWindow
         var buttonText = selectedEntry == -1 ? "Add" : "Save";
         if (ImGui.Button(buttonText))
         {
-            if (!string.IsNullOrEmpty(labelInput))
+            if (!string.IsNullOrEmpty(labelInput) && selectedTerritory > -1)
             {
-
                 if (selectedEntry == -1)
                 {
                     triggerEntryInput.Enabled = enabledInput;
@@ -122,20 +121,20 @@ public partial class ConfigWindow
                     triggerEntryInput.Boards = boardsInput;
                     triggerEntryInput.WeatherSetting = weatherSettingInput;
                     triggerEntryInput.IsInterruptable = isInterruptibleInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory].Add(new(triggerEntryInput));
-                    selectedEntry = configuration.StrategyBoardTriggerOptions[selectedTerritory].Count - 1;
+                    configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory].Add(new(triggerEntryInput));
+                    selectedEntry = configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory].Count - 1;
                 }
                 else
                 {
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].Enabled = enabledInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].Label = labelInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].Type = typeInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].NewWeather = newWeatherInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].OldWeatherEnabled = oldWeatherEnabledInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].OldWeatherId = oldWeatherInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].Boards = boardsInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].WeatherSetting = weatherSettingInput;
-                    configuration.StrategyBoardTriggerOptions[selectedTerritory][selectedEntry].IsInterruptable = isInterruptibleInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].Enabled = enabledInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].Label = labelInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].Type = typeInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].NewWeather = newWeatherInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].OldWeatherEnabled = oldWeatherEnabledInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].OldWeatherId = oldWeatherInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].Boards = boardsInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].WeatherSetting = weatherSettingInput;
+                        configuration.StrategyBoardTriggerOptions[(uint)selectedTerritory][selectedEntry].IsInterruptable = isInterruptibleInput;
                 }
 
                 configuration.Save();

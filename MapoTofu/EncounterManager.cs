@@ -66,7 +66,7 @@ internal class EncounterManager : IDisposable
     }
 
 
-    internal void OnTerritoryChanged(ushort obj)
+    internal void OnTerritoryChanged(uint obj)
     {
         encounterTimer.Stop();
         activeStrategyManager.encounterManagerShouldSkip = false;
@@ -77,12 +77,12 @@ internal class EncounterManager : IDisposable
         actionManager.actionRetries = 0;
     }
 
-    private void OnDutyRecommenced(object? sender, ushort e)
+    private void OnDutyRecommenced(Dalamud.Game.DutyState.IDutyStateEventArgs args)
     {
         activeStrategyManager.SearchAndRunInitState();
     }
 
-    private void OnDutyStarted(object? sender, ushort e)
+    private void OnDutyStarted(Dalamud.Game.DutyState.IDutyStateEventArgs args)
     {
         activeStrategyManager.SearchAndRunInitState();
     }

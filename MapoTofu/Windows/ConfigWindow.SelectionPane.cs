@@ -34,10 +34,10 @@ public partial class ConfigWindow
                         if (ImGui.Selectable($"{territory.Value[i].Label}", selectedLoop))
                         {
                             OnSelect(territory.Value[i]);
-                            selectedTerritory = territory.Key;
+                            selectedTerritory = (int)territory.Key;
                             selectedEntry = i;
                         }
-                        DrawContextMenuTrigger(i);
+                        DrawContextMenuTrigger((uint)i);
                     }
 
                     if (triggerToDelete > -1)
@@ -51,7 +51,7 @@ public partial class ConfigWindow
                     var selected = selectedTerritory == territory.Key && selectedEntry == -1;
                     if (ImGui.Selectable("Add trigger", selected))
                     {
-                        selectedTerritory = territory.Key;
+                        selectedTerritory = (int)territory.Key;
                         selectedEntry = -1;
                         OnSelect(new());
                     }
@@ -69,7 +69,7 @@ public partial class ConfigWindow
             else
             {
                 ImGui.SetNextItemWidth(100);
-                ImGui.InputInt("Territory", ref territoryInput);
+                ImGui.InputUInt("Territory", ref territoryInput);
                 ImGui.SameLine();
                 if (ImGui.Button("Add"))
                 {
@@ -86,7 +86,7 @@ public partial class ConfigWindow
 
             if (territoryToDelete > -1)
             {
-                configuration.StrategyBoardTriggerOptions.Remove(territoryToDelete);
+                configuration.StrategyBoardTriggerOptions.Remove((uint)territoryToDelete);
                 territoryToDelete = -1;
                 configuration.Save();
             }
@@ -94,22 +94,22 @@ public partial class ConfigWindow
         }
     }
 
-    private void DrawContextMenuTrigger(int i)
+    private void DrawContextMenuTrigger(uint i)
     {
         using var c = ImRaii.ContextPopupItem($"TriggerContextMenu###{i}");
         if (!c.Success) return;
         if (ImGui.MenuItem($"Delete###Trigger{i}"))
         {
-            triggerToDelete = i;
+            triggerToDelete = (int)i;
         }
     }
-    private void DrawContextMenuTerritory(int i)
+    private void DrawContextMenuTerritory(uint i)
     {
         using var c = ImRaii.ContextPopupItem($"TerritoryContextMenu###{i}");
         if (!c.Success) return;
         if (ImGui.MenuItem($"Delete###Territory{i}"))
         {
-            territoryToDelete = i;
+            territoryToDelete = (int)i;
         }
     }
 
@@ -129,6 +129,6 @@ public partial class ConfigWindow
         pendingChanges = false;
     }
 
-    private static string GetTerritoryName(ushort territory) => Plugin.DataManager.GetExcelSheet<TerritoryType>().GetRow(territory).PlaceName.Value.Name.ToString();
-    private static string GetWeatherName(ushort weather) => Plugin.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Weather>().GetRow(weather).Name.ToString();
+    private static string GetTerritoryName(uint territory) => Plugin.DataManager.GetExcelSheet<TerritoryType>().GetRow(territory).PlaceName.Value.Name.ToString();
+    private static string GetWeatherName(uint weather) => Plugin.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Weather>().GetRow(weather).Name.ToString();
 }
