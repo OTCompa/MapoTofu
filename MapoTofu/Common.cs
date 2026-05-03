@@ -1,4 +1,3 @@
-using MapoTofu.Structs;
 using System.Collections.Generic;
 using System.Linq;
 using static MapoTofu.Windows.ConfigWindow;
@@ -63,26 +62,25 @@ public class Common
     // maps the strategy board index to TofuList entry # to view the corresponding board
     public static unsafe int FindBoardPosition(Strategy strategy)
     {
-        var tofuModule = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
-        if (tofuModule == null) return -1;
-        var tofuChild = tofuModule->TofuModuleChild;
-        if (tofuChild == null) return -1;
+        var tofu = FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
+        if (tofu == null) return -1;
+
         if (!strategy.IsFolder)
         {
             // if selected is a singular board, only need to get position in list
             // and add number of the folders that came before it
-            var board = tofuChild->SavedBoards[strategy.Index];
-            var parentFolder = tofuChild->SavedFolders[board.Folder];
+            var board = tofu->SavedBoardData->Boards[strategy.Index];
+            var parentFolder = tofu->SavedFolderData->Folders[board.Folder];
             return board.PositionInList + parentFolder.PositionInList;
         }
         else
         {
             // if selected is a folder, just get the first board in the folder
             // should be the same thing (hopefully)
-            var folder = tofuChild->SavedFolders[strategy.Index];
+            var folder = tofu->SavedFolderData->Folders[strategy.Index];
             //Log.Debug($"Folder {folder.Index}: {folder.Title}, {folder.PositionInList}");
             var lowestInFolder = 100;
-            foreach (var board in tofuChild->SavedBoards)
+            foreach (var board in tofu->SavedBoardData->Boards)
             {
                 if (!board.IsValid) continue;
                 if (board.Folder != strategy.Index) continue;

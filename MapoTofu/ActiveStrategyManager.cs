@@ -1,5 +1,4 @@
 using Dalamud.Game.ClientState.Conditions;
-using MapoTofu.Structs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -137,19 +136,15 @@ internal class ActiveStrategyManager
     // check plugin's understanding of strategy board order
     public unsafe void Debug()
     {
-        var tofu = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
-        Plugin.Log.Debug($"{(nint)tofu:X02}");
+        var tofu = FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
         if (tofu == null) return;
-        var tofuChild = tofu->TofuModuleChild;
-        Plugin.Log.Debug($"{(nint)tofuChild:X02}");
-        if (tofuChild == null) return;
-        var sb = new StringBuilder();
 
+        var sb = new StringBuilder();
         // this LINQ query was written by AI based on my original logic
-        var sortedTree = tofuChild->SavedFolders.ToArray()
+        var sortedTree = tofu->SavedFolderData->Folders.ToArray()
             .Where(f => f.IsValid)
             .GroupJoin(
-                tofuChild->SavedBoards.ToArray().Where(b => b.IsValid),
+                tofu->SavedBoardData->Boards.ToArray().Where(b => b.IsValid),
                 f => f.Index,
                 b => b.Folder,
                 (f, boards) => new {
@@ -162,17 +157,19 @@ internal class ActiveStrategyManager
 
         foreach (var entry in sortedTree)
         {
-            if (entry.Folder.IsSingleItem)
+            if (entry == null) continue;
+
+            if (entry.Folder.IsBoard)
             {
                 var first = entry.SortedBoards.FirstOrDefault();
-                sb.AppendLine($"{first.Title} ({entry.Folder.Index})");
+                sb.AppendLine($"{first.NameString} ({entry.Folder.Index})");
             }
             else
             {
-                sb.AppendLine($"{entry.Folder.Title}/ ({entry.Folder.Index})");
+                sb.AppendLine($"{entry.Folder.NameString}/ ({entry.Folder.Index})");
                 foreach (var board in entry.SortedBoards)
                 {
-                    sb.AppendLine($"├─{board.Title} ({board.Index})");
+                    sb.AppendLine($"├─{board.NameString} ({board.Index})");
                 }
             }
         }

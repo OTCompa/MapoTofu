@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Numerics;
 using static MapoTofu.Common;
-using MapoTofu.Structs;
 
 namespace MapoTofu.Windows;
 
@@ -267,16 +266,14 @@ public partial class ConfigWindow
 
     private unsafe void PopulateStrategyData()
     {
-        var tofu = (TofuModule*)FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
+        var tofu = FFXIVClientStructs.FFXIV.Client.UI.Misc.TofuModule.Instance();
         if (tofu == null) return;
-        var tofuChild = tofu->TofuModuleChild;
-        if (tofuChild == null) return;
 
         // this LINQ query was written by AI based on my original logic
-        var sortedTree = tofuChild->SavedFolders.ToArray()
+        var sortedTree = tofu->SavedFolderData->Folders.ToArray()
             .Where(f => f.IsValid)
             .GroupJoin(
-                tofuChild->SavedBoards.ToArray().Where(b => b.IsValid),
+                tofu->SavedBoardData->Boards.ToArray().Where(b => b.IsValid),
                 f => f.Index,
                 b => b.Folder,
                 (f, boards) => new {
@@ -289,17 +286,17 @@ public partial class ConfigWindow
 
         foreach (var entry in sortedTree)
         {
-            if (entry.Folder.IsSingleItem)
+            if (entry.Folder.IsBoard)
             {
                 var first = entry.SortedBoards.FirstOrDefault();
-                strategyData.Add(new(first.Index, first.Title, false));
+                strategyData.Add(new(first.Index, first.NameString, false));
             }
             else
             {
-                strategyData.Add(new(entry.Folder.Index, entry.Folder.Title, true));
+                strategyData.Add(new(entry.Folder.Index, entry.Folder.NameString, true));
                 foreach (var board in entry.SortedBoards)
                 {
-                    strategyData.Add(new(board.Index, $"\t{board.Title}", false));
+                    strategyData.Add(new(board.Index, $"\t{board.NameString}", false));
                 }
             }
         }
