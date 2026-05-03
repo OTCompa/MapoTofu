@@ -144,6 +144,7 @@ public partial class ConfigWindow : Window, IDisposable
 
     private void DrawTriggersTab()
     {
+        ImGui.Text("If the names are incorrect and you've used this plugin before 7.5, please click the migrate button in the Config tab!");
         DrawSelectionPane();
         ImGui.SameLine();
         DrawOptionPane();

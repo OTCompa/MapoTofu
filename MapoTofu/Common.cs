@@ -34,7 +34,7 @@ public class Common
 
     public class TriggerEntry
     {
-        public bool Migrated = false;
+        public bool Migrated = false;  // temporarily here since I used to use zone ids instead of CFC
         public bool Enabled = true;
         public string Label = "";
         public ConfigTriggerType Type = ConfigTriggerType.Timer;
@@ -45,10 +45,13 @@ public class Common
         public ConfigWeatherSetting WeatherSetting = ConfigWeatherSetting.Any;
         public bool IsInterruptable = true;
 
-        public TriggerEntry() { }
+        public TriggerEntry() {
+            Migrated = true;
+        }
 
         public TriggerEntry(TriggerEntry triggerEntry)
         {
+            Migrated = true;
             Enabled = triggerEntry.Enabled;
             Label = triggerEntry.Label;
             Type = triggerEntry.Type;
