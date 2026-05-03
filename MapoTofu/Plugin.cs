@@ -3,7 +3,9 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using MapoTofu.Windows;
+using System;
 
 namespace MapoTofu;
 
@@ -101,5 +103,12 @@ public sealed class Plugin : IDalamudPlugin
     private void OnCommand(string command, string args) => ConfigWindow.Toggle();
     private void DebugTerritory(string command, string args) => EncounterManager.OnTerritoryChanged(ClientState.TerritoryType);
     private void DebugPrint(string command, string args) => ActiveStrategyManager.Debug();
+    private unsafe void DebugPrint2(string command, string args)
+    {
+        var tofuList = AgentTofuList.Instance();
+        if (tofuList == null) return;
+
+        Log.Debug($"{(IntPtr)tofuList:X2}");
+    }
     public void ToggleConfigUi() => ConfigWindow.Toggle();
 }

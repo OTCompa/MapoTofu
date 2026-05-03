@@ -1,4 +1,6 @@
 using Dalamud.Game.ClientState.Conditions;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,13 +45,12 @@ internal class ActiveStrategyManager
             // this LINQ query was written by AI based on my original logic
             var bestMatch = list.Where(e => e.Type == ConfigTriggerType.Weather && e.NewWeather == weather.weather)
                 .Where(e => !e.OldWeatherEnabled)
-                .Where(e => e.WeatherSetting switch
+                .FirstOrDefault(e => e.WeatherSetting switch
                 {
                     ConfigWeatherSetting.OnlyInCombat => inCombat,
                     ConfigWeatherSetting.OnlyOutCombat => !inCombat,
                     _ => true
-                })
-                .FirstOrDefault() ??
+                }) ??
                 list.FirstOrDefault(e => e.Type == ConfigTriggerType.Timer);
 
             if (bestMatch != null)
@@ -107,14 +108,22 @@ internal class ActiveStrategyManager
         }
     }
 
-    public bool OpenStrategy(StrategyConfigEntry entry)
+    public unsafe bool OpenStrategy(StrategyConfigEntry entry)
     {
         try
         {
             if (Utility.ShouldWait()) return false;
-            Utility.HideTofu();
-            Utility.ShowTofu();
             Plugin.Log.Info($"Opening strategy board: {entry.Strategy.Title}");
+
+            // TofuList must be "visible" for TofuPreview to show, so always ensure TofuList is visible
+            var addon = (AtkUnitBase*)Plugin.GameGui.GetAddonByName("TofuList").Address;
+            if (addon == null || !addon->IsVisible)
+            {
+                Utility.ShowTofu();
+                // if ReviewBoard() is called too fast, TofuList will actually be visible instead of hidden during preview
+                actionManager.actionDelay = 100;
+            }
+
             var idx = FindBoardPosition(entry.Strategy);
             if (idx < -1 || idx > 49)
             {
@@ -122,8 +131,20 @@ internal class ActiveStrategyManager
                 Debug();
                 return false;
             }
-            actionManager.actionQueue.Enqueue(() => Utility.PeekBoard((uint)idx));
-            actionManager.actionQueue.Enqueue(Utility.ReviewBoard);
+
+            var tofu = AgentTofuList.Instance();
+            if (tofu == null) return false;
+            if (tofu->Data == null) return false;
+            tofu->Data->SavedSelectedIndex = idx;
+
+            // Doing the following only once toggles TofuPreview if it's already active, so toggle it twice to refresh to new board if needed
+            actionManager.actionQueue.Enqueue(Utility.ReviewBoard2);
+            actionManager.actionQueue.Enqueue(() =>
+            {
+                var tofuPreview = (AtkUnitBase*)Plugin.GameGui.GetAddonByName("TofuPreview").Address;
+                if (tofuPreview == null || !tofuPreview->IsVisible) Utility.ReviewBoard2();
+                return true;
+            });
             return true;
         }
         catch (Exception e)

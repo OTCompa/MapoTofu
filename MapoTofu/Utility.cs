@@ -2,6 +2,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -109,5 +110,13 @@ internal static class Utility
     public static bool ReturnToList() => CallbackHelper("TofuPreview", 0, 1);
     public static bool PeekBoard(uint boardNum) => CallbackHelper("TofuList", 3, boardNum);
     public static bool ReviewBoard() => CallbackHelper("TofuList", 0, 9);
+    public unsafe static bool ReviewBoard2()
+    {
+        var agentTofu = AgentTofuList.Instance();
+        if (agentTofu == null) return false;
+        if (agentTofu->Data == null) return false;
+        agentTofu->Data->ReviewSelectedBoard();
+        return true;
+    }
     public static bool ExitPreview() => CallbackHelper("TofuPreview", -1);
 }
