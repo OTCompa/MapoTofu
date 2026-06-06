@@ -24,7 +24,8 @@ public partial class ConfigWindow
             foreach (var placeId in configuration.StrategyBoardTriggerOptions)
             {
                 using var _ = ImRaii.PushId(n);
-                var name = placeId.Value[0].Migrated ? GetCFCName((ushort)placeId.Key) : GetTerritoryName((ushort)placeId.Key);
+
+                var name = placeId.Value.Count == 0 || placeId.Value[0].Migrated ? GetCFCName((ushort)placeId.Key) : GetTerritoryName((ushort)placeId.Key);
                 using var tree = ImRaii.TreeNode($"{name} ({placeId.Key})");
                 DrawContextMenuPlace(placeId.Key);
                 if (tree)
