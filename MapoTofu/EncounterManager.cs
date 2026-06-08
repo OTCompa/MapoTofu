@@ -111,7 +111,7 @@ internal class EncounterManager : IDisposable
     {
         if (!encounterTimer.IsRunning) return;
         if (activeStrategyManager.activeEntry != null && !activeStrategyManager.activeEntry.IsInterruptable) return;
-        var territory = Plugin.ClientState.TerritoryType;
+        var territory = Plugin.DutyState.ContentFinderCondition.RowId;
         if (configuration.StrategyBoardTriggerOptions.ContainsKey(territory))
         {
             // only consider weather triggers, prioritize ones with a oldweather check

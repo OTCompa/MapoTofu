@@ -137,7 +137,7 @@ public partial class ConfigWindow
                 }
 
                 configuration.Save();
-                if (selectedPlace == Plugin.ClientState.TerritoryType)
+                if (selectedPlace == Plugin.DutyState.ContentFinderCondition.RowId)
                 {
                     plugin.ActiveStrategyManager.SearchAndRunInitState();
                 }
